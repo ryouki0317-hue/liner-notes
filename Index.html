@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Liner Notes</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Inter Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Helvetica Neue"', 'sans-serif'],
+          },
+          colors: {
+            sp: {
+              base: '#0f0f0f',
+              surface: '#181818',
+              elevated: '#262626',
+              hover: '#333333',
+              border: '#262626',
+              accent: '#1DB954',
+              accentHover: '#1ed760',
+              text: '#ffffff',
+              muted: '#a3a3a3',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-sp-base text-sp-text font-sans antialiased selection:bg-sp-accent/30 selection:text-white min-h-screen pb-16 overflow-x-hidden">
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-sp-elevated border border-white/10 shadow-xl text-sm font-medium text-white flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-4 max-w-[90vw]">
+    <span id="toast-icon"></span>
+    <span id="toast-message" class="truncate"></span>
+  </div>
+
+  <!-- ==========================================
+       1. TOP VIEW (Header, Sync, Search, Albums)
+  =========================================== -->
+  <div id="view-top" class="max-w-2xl mx-auto">
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-4 py-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-sp-accent inline-block shrink-0"></span>
+            Liner Notes
+          </h1>
+          <p id="last-updated" class="text-[11px] text-sp-muted truncate mt-0.5">読み込み中...</p>
+        </div>
+
+        <!-- Sync Action Buttons -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button id="btn-refresh" onclick="handleGetRefresh()" class="px-3 py-1.5 rounded-full bg-sp-elevated hover:bg-sp-hover active:scale-95 text-xs font-semibold text-white transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
+            <svg id="icon-refresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>更新</span>
+          </button>
+
+          <button id="btn-sync" onclick="handlePostSync()" class="px-3 py-1.5 rounded-full bg-sp-accent hover:bg-sp-accentHover active:scale-95 text-xs font-bold text-black transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
+            <svg id="icon-sync" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+            </svg>
+            <svg id="spinner-sync" class="w-3.5 h-3.5 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="text-sync">最新取込</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Offline Banner -->
+      <div id="offline-banner" class="hidden mt-2 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+        </svg>
+        <span>オフライン表示中（キャッシュデータを表示しています）</span>
+      </div>
+
+      <!-- Search Input -->
+      <div class="relative mt-3">
+        <svg class="w-4 h-4 text-sp-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input
+          type="text"
+          id="search-input"
+          placeholder="曲名、アーティスト、アルバムで検索..."
+          autocomplete="off"
+          class="w-full pl-10 pr-9 py-2.5 rounded-full bg-sp-elevated text-sm text-white placeholder-sp-muted focus:outline-none focus:ring-2 focus:ring-sp-accent/70 transition"
+        >
+        <button id="btn-clear-search" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-sp-muted hover:text-white p-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="px-4 pt-4 space-y-6">
+      <!-- Empty / Loading State -->
+      <div id="top-empty-state" class="hidden py-16 text-center">
+        <p id="top-empty-text" class="text-sm text-sp-muted">データがありません</p>
+      </div>
+
+      <!-- Search Results: Tracks -->
+      <section id="section-search-tracks" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">楽曲</h2>
+          <span id="search-tracks-count" class="text-xs text-sp-muted"></span>
+        </div>
+        <div id="search-tracks-list" class="space-y-1"></div>
+      </section>
+
+      <!-- Albums List -->
+      <section id="section-albums">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">アルバム</h2>
+          <span id="albums-count" class="text-xs text-sp-muted"></span>
+        </div>
+        <div id="albums-list" class="space-y-1.5"></div>
+      </section>
+
+      <!-- Recently Added Tracks (Default Home View) -->
+      <section id="section-recent-tracks" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">最近追加した曲</h2>
+          <span id="recent-tracks-count" class="text-xs text-sp-muted"></span>
+        </div>
+        <div id="recent-tracks-list" class="space-y-1"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       2. ALBUM DETAIL VIEW
+  =========================================== -->
+  <div id="view-album" class="hidden max-w-2xl mx-auto">
+    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center">
+      <button onclick="showView('view-top')" class="p-2 rounded-full text-sp-muted hover:text-white hover:bg-sp-elevated active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>戻る</span>
+      </button>
+    </header>
+
+    <div class="px-4 pt-6 pb-6 border-b border-[#262626] text-center">
+      <div id="album-detail-art-wrap" class="w-[140px] h-[140px] mx-auto rounded-lg overflow-hidden shadow-2xl bg-sp-elevated mb-4 relative"></div>
+      <h2 id="album-detail-title" class="text-xl font-bold text-[#f5f5f5] leading-snug"></h2>
+      <p id="album-detail-artist" class="text-sm text-[#a3a3a3] mt-1"></p>
+      <p id="album-detail-meta" class="text-xs text-[#a3a3a3]/80 mt-1.5"></p>
+    </div>
+
+    <div id="album-tracks-list" class="px-2 py-3 space-y-1"></div>
+  </div>
+
+  <!-- ==========================================
+       3. TRACK DETAIL VIEW (Liner Notes)
+  =========================================== -->
+  <div id="view-track" class="hidden max-w-2xl mx-auto">
+    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center justify-between">
+      <button id="btn-track-back" type="button" class="p-2 rounded-full text-sp-muted hover:text-white hover:bg-sp-elevated active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span>戻る</span>
+      </button>
+    </header>
+
+    <div class="px-4 pt-6 pb-5 text-center border-b border-[#262626]">
+      <div id="track-detail-art-wrap" class="w-[100px] h-[100px] mx-auto rounded-lg overflow-hidden shadow-xl bg-sp-elevated mb-4 relative"></div>
+      <h2 id="track-detail-title" class="text-xl font-bold text-white leading-snug"></h2>
+      <p id="track-detail-artist" class="text-sm text-sp-muted mt-1"></p>
+      <p id="track-detail-album" class="text-xs text-sp-muted/80 mt-0.5"></p>
+
+      <!-- External Genius Link Button -->
+      <div class="mt-4">
+        <a id="track-genius-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 hover:bg-yellow-400/25 border border-yellow-400/40 text-yellow-300 text-xs font-semibold transition active:scale-95">
+          <span>Geniusで解説を見る</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="px-4 pt-4">
+      <div class="grid grid-cols-2 p-1 rounded-xl bg-sp-surface border border-white/5">
+        <button id="tab-btn-context" onclick="switchTrackTab('context')" class="py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white">
+          解説
+        </button>
+        <button id="tab-btn-lyrics" onclick="switchTrackTab('lyrics')" class="py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white">
+          歌詞
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab Panels -->
+    <div class="px-4 py-4">
+      <!-- Context Panel -->
+      <div id="panel-context" class="space-y-3"></div>
+
+      <!-- Lyrics Panel -->
+      <div id="panel-lyrics" class="hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // Configuration & State
+    // ==========================================
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyeKl2yRAf2njGTa4kcXGUrw7yj1XVpbNprPweVrnYQX709uIVh4-2Cz_Sdra9m1zloKw/exec';
+    const DB_NAME = 'LinerNotesDB';
+    const DB_VERSION = 3;
+    const STORE_NAME = 'appState';
+    const CACHE_KEY = 'latest';
+
+    let db = null;
+    let appData = { updatedAt: null, tracks: [] };
+    let currentBackView = 'view-top';
+    let currentTrackTab = 'context';
+    let toastTimer = null;
+
+    // ==========================================
+    // IndexedDB Helper (Offline-First Storage)
+    // ==========================================
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            database.createObjectStore(STORE_NAME, { keyPath: 'key' });
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function savePayloadToDB(payload) {
+      return new Promise((resolve, reject) => {
+        if (!db) return resolve();
+        const tx = db.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ key: CACHE_KEY, updatedAt: payload.updatedAt, tracks: payload.tracks || [] });
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function loadPayloadFromDB() {
+      return new Promise((resolve, reject) => {
+        if (!db) return resolve(null);
+        const tx = db.transaction([STORE_NAME], 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(CACHE_KEY);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    // ==========================================
+    // UI Utilities (Toast, Artwork, Escaping)
+    // ==========================================
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toast');
+      const iconEl = document.getElementById('toast-icon');
+      const msgEl = document.getElementById('toast-message');
+
+      if (type === 'success') {
+        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-sp-accent inline-block"></span>';
+      } else if (type === 'error') {
+        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>';
+      } else {
+        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-sp-muted inline-block"></span>';
+      }
+
+      msgEl.textContent = message;
+      toast.classList.remove('opacity-0', 'translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-4');
+        toast.classList.remove('opacity-100', 'translate-y-0');
+      }, 2800);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatDateTime(isoStr) {
+      if (!isoStr) return '未同期';
+      const d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '未同期';
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      return `最終同期: ${mm}/${dd} ${hh}:${mi}`;
+    }
+
+    /**
+     * Generates an artwork element with an inline SVG music note fallback
+     * (No base64 or external placeholder URLs needed)
+     */
+    function createArtworkHTML(url, iconSizeClass = 'w-6 h-6') {
+      const fallbackSvg = `
+        <div class="w-full h-full flex items-center justify-center bg-sp-elevated text-sp-muted/60">
+          <svg class="${iconSizeClass}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+          </svg>
+        </div>
+      `;
+      if (!url) return fallbackSvg;
+      return `
+        ${fallbackSvg}
+        <img
+          src="${escapeHtml(url)}"
+          alt=""
+          loading="lazy"
+          onerror="this.style.display='none'"
+          class="absolute inset-0 w-full h-full object-cover"
+        >
+      `;
+    }
+
+    function updateOfflineUI() {
+      const banner = document.getElementById('offline-banner');
+      if (!navigator.onLine) {
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
+      }
+    }
+
+    // ==========================================
+    // API Communication (GET & POST)
+    // ==========================================
+    async function fetchGetPayload(silent = false) {
+      if (!navigator.onLine) {
+        if (!silent) showToast('オフラインのため更新できません', 'error');
+        return;
+      }
+
+      const btnRefresh = document.getElementById('btn-refresh');
+      const iconRefresh = document.getElementById('icon-refresh');
+      btnRefresh.disabled = true;
+      iconRefresh.classList.add('animate-spin');
+
+      try {
+        const res = await fetch(API_URL, { method: 'GET' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (data && Array.isArray(data.tracks)) {
+          appData = { updatedAt: data.updatedAt || new Date().toISOString(), tracks: data.tracks };
+          await savePayloadToDB(appData);
+          renderTopView();
+          if (!silent) showToast('最新データに更新しました', 'success');
+        }
+      } catch (err) {
+        console.error('GET Error:', err);
+        if (!silent) showToast('データの取得に失敗しました', 'error');
+      } finally {
+        btnRefresh.disabled = false;
+        iconRefresh.classList.remove('animate-spin');
+      }
+    }
+
+    async function handleGetRefresh() {
+      await fetchGetPayload(false);
+    }
+
+    async function handlePostSync() {
+      if (!navigator.onLine) {
+        showToast('オフラインのため取込できません', 'error');
+        return;
+      }
+
+      const btnSync = document.getElementById('btn-sync');
+      const btnRefresh = document.getElementById('btn-refresh');
+      const iconSync = document.getElementById('icon-sync');
+      const spinnerSync = document.getElementById('spinner-sync');
+      const textSync = document.getElementById('text-sync');
+
+      btnSync.disabled = true;
+      btnRefresh.disabled = true;
+      iconSync.classList.add('hidden');
+      spinnerSync.classList.remove('hidden');
+      textSync.textContent = '取込中...';
+      showToast('Last.fm・解説・歌詞を取得しています...', 'info');
+
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'sync' })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+
+        if (json.status === 'ok' && json.data && Array.isArray(json.data.tracks)) {
+          appData = {
+            updatedAt: json.data.updatedAt || new Date().toISOString(),
+            tracks: json.data.tracks
+          };
+          await savePayloadToDB(appData);
+          renderTopView();
+          showToast('最新データの取込が完了しました', 'success');
+        } else {
+          throw new Error(json.message || 'Unknown API error');
+        }
+      } catch (err) {
+        console.error('POST Sync Error:', err);
+        showToast('取込に失敗しました', 'error');
+      } finally {
+        btnSync.disabled = false;
+        btnRefresh.disabled = false;
+        iconSync.classList.remove('hidden');
+        spinnerSync.classList.add('hidden');
+        textSync.textContent = '最新取込';
+      }
+    }
+
+    // ==========================================
+    // View Navigation
+    // ==========================================
+    function showView(viewId) {
+      ['view-top', 'view-album', 'view-track'].forEach(id => {
+        document.getElementById(id).classList.toggle('hidden', id !== viewId);
+      });
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('search-input');
+      input.value = '';
+      document.getElementById('btn-clear-search').classList.add('hidden');
+      renderTopView();
+      input.focus();
+    }
+
+    // ==========================================
+    // Rendering: Top View (Search + Albums)
+    // ==========================================
+    function renderTopView() {
+      document.getElementById('last-updated').textContent = formatDateTime(appData.updatedAt);
+
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+      document.getElementById('btn-clear-search').classList.toggle('hidden', !query);
+
+      const tracks = appData.tracks || [];
+      const searchSection = document.getElementById('section-search-tracks');
+      const searchList = document.getElementById('search-tracks-list');
+      const albumsSection = document.getElementById('section-albums');
+      const albumsList = document.getElementById('albums-list');
+      const recentSection = document.getElementById('section-recent-tracks');
+      const recentList = document.getElementById('recent-tracks-list');
+      const emptyState = document.getElementById('top-empty-state');
+      const emptyText = document.getElementById('top-empty-text');
+
+      searchList.innerHTML = '';
+      albumsList.innerHTML = '';
+      recentList.innerHTML = '';
+
+      if (tracks.length === 0) {
+        searchSection.classList.add('hidden');
+        albumsSection.classList.add('hidden');
+        recentSection.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+        emptyText.textContent = '楽曲データがありません。「最新取込」を押して同期してください。';
+        return;
+      }
+
+      // 1. Track Search Results (only when query is non-empty)
+      let matchedTracks = [];
+      if (query) {
+        matchedTracks = tracks.filter(t =>
+          (t.title || '').toLowerCase().includes(query) ||
+          (t.artist || '').toLowerCase().includes(query) ||
+          (t.album || '').toLowerCase().includes(query)
+        );
+
+        if (matchedTracks.length > 0) {
+          searchSection.classList.remove('hidden');
+          document.getElementById('search-tracks-count').textContent = `${matchedTracks.length}曲`;
+
+          matchedTracks.forEach(track => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
+            btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
+            btn.innerHTML = `
+              <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-elevated">
+                ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-medium text-white truncate">${escapeHtml(track.title)}</div>
+                <div class="text-xs text-sp-muted truncate">${escapeHtml(track.artist)} • ${escapeHtml(track.album)}</div>
+              </div>
+            `;
+            searchList.appendChild(btn);
+          });
+        } else {
+          searchSection.classList.add('hidden');
+        }
+      } else {
+        searchSection.classList.add('hidden');
+      }
+
+      // 2. Group Albums by album + artist
+      const albumsMap = new Map();
+      tracks.forEach(t => {
+        const albumName = t.album || 'Single / Unknown Album';
+        const artistName = t.artist || 'Unknown Artist';
+        const key = `${albumName}:::${artistName}`;
+        if (!albumsMap.has(key)) {
+          albumsMap.set(key, {
+            album: albumName,
+            artist: artistName,
+            artworkUrl: t.artworkUrl || '',
+            tracks: []
+          });
+        }
+        const entry = albumsMap.get(key);
+        if (!entry.artworkUrl && t.artworkUrl) entry.artworkUrl = t.artworkUrl;
+        entry.tracks.push(t);
+      });
+
+      let albums = Array.from(albumsMap.values());
+      if (query) {
+        albums = albums.filter(a =>
+          a.album.toLowerCase().includes(query) ||
+          a.artist.toLowerCase().includes(query)
+        );
+      }
+
+      if (albums.length > 0) {
+        albumsSection.classList.remove('hidden');
+        document.getElementById('albums-count').textContent = `${albums.length}枚`;
+
+        albums.forEach(album => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full flex items-center gap-3.5 p-2 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
+          btn.addEventListener('click', () => openAlbumDetail(album));
+          btn.innerHTML = `
+            <div class="w-[60px] h-[60px] rounded-md overflow-hidden shrink-0 relative bg-sp-elevated shadow">
+              ${createArtworkHTML(album.artworkUrl, 'w-6 h-6')}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-base font-semibold text-white truncate">${escapeHtml(album.album)}</div>
+              <div class="text-xs text-sp-muted truncate mt-0.5">${escapeHtml(album.artist)}</div>
+              <div class="text-[11px] text-sp-muted/70 mt-0.5">${album.tracks.length}曲</div>
+            </div>
+            <svg class="w-4 h-4 text-sp-muted/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          `;
+          albumsList.appendChild(btn);
+        });
+      } else {
+        albumsSection.classList.add('hidden');
+      }
+
+      // 3. Recently Added Tracks (shown on default Home View when not searching)
+      if (!query && tracks.length > 0) {
+        const recentTracks = tracks.slice(0, 15);
+        recentSection.classList.remove('hidden');
+        document.getElementById('recent-tracks-count').textContent = `${recentTracks.length}曲`;
+
+        recentTracks.forEach(track => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
+          btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
+          btn.innerHTML = `
+            <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-elevated">
+              ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-sm font-medium text-white truncate">${escapeHtml(track.title)}</div>
+              <div class="text-xs text-[#a3a3a3] truncate">${escapeHtml(track.artist)} • ${escapeHtml(track.album)}</div>
+            </div>
+            <svg class="w-4 h-4 text-[#a3a3a3]/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          `;
+          recentList.appendChild(btn);
+        });
+      } else {
+        recentSection.classList.add('hidden');
+      }
+
+      // Empty search result message
+      if (query && matchedTracks.length === 0 && albums.length === 0) {
+        emptyState.classList.remove('hidden');
+        emptyText.textContent = `「${query}」に一致する曲やアルバムが見つかりませんでした`;
+      } else {
+        emptyState.classList.add('hidden');
+      }
+    }
+
+    // ==========================================
+    // Rendering: Album Detail View
+    // ==========================================
+    function openAlbumDetail(albumObj) {
+      document.getElementById('album-detail-art-wrap').innerHTML = createArtworkHTML(albumObj.artworkUrl, 'w-12 h-12');
+      document.getElementById('album-detail-title').textContent = albumObj.album;
+      document.getElementById('album-detail-artist').textContent = albumObj.artist;
+      document.getElementById('album-detail-meta').textContent = `${albumObj.tracks.length}曲収録`;
+
+      // Sort tracks strictly by discNumber -> trackNumber -> addedAt (ascending)
+      const sortedTracks = [...albumObj.tracks].sort((a, b) => {
+        const aTrackNum = Number(a.trackNumber);
+        const bTrackNum = Number(b.trackNumber);
+        const aHasTrack = Number.isFinite(aTrackNum) && aTrackNum > 0;
+        const bHasTrack = Number.isFinite(bTrackNum) && bTrackNum > 0;
+
+        const aDiscRaw = Number(a.discNumber);
+        const bDiscRaw = Number(b.discNumber);
+        const aDisc = (Number.isFinite(aDiscRaw) && aDiscRaw > 0) ? aDiscRaw : (aHasTrack ? 1 : 9999);
+        const bDisc = (Number.isFinite(bDiscRaw) && bDiscRaw > 0) ? bDiscRaw : (bHasTrack ? 1 : 9999);
+        if (aDisc !== bDisc) return aDisc - bDisc;
+
+        const aTrack = aHasTrack ? aTrackNum : 9999;
+        const bTrack = bHasTrack ? bTrackNum : 9999;
+        if (aTrack !== bTrack) return aTrack - bTrack;
+
+        // Tie-breaker: chronological listening order (addedAt ascending)
+        const aTime = a.addedAt ? new Date(a.addedAt).getTime() : 0;
+        const bTime = b.addedAt ? new Date(b.addedAt).getTime() : 0;
+        return (isNaN(aTime) ? 0 : aTime) - (isNaN(bTime) ? 0 : bTime);
+      });
+
+      // Check if album contains multiple discs (or discNumber > 1)
+      const validDiscs = new Set(
+        sortedTracks
+          .map(t => Number(t.discNumber))
+          .filter(d => Number.isFinite(d) && d > 0)
+      );
+      const isMultiDisc = validDiscs.size > 1 || Array.from(validDiscs).some(d => d > 1);
+
+      const listEl = document.getElementById('album-tracks-list');
+      listEl.innerHTML = '';
+
+      sortedTracks.forEach(track => {
+        const hasContext = track.contexts && track.contexts.length > 0;
+        const hasLyrics = Boolean(track.lyrics);
+
+        const trackNumVal = Number(track.trackNumber);
+        const discNumVal = Number(track.discNumber);
+        const hasTrackNum = Number.isFinite(trackNumVal) && trackNumVal > 0;
+        const effectiveDisc = (Number.isFinite(discNumVal) && discNumVal > 0) ? discNumVal : 1;
+
+        let trackNumLabel = '-';
+        if (hasTrackNum) {
+          trackNumLabel = isMultiDisc ? `${effectiveDisc}-${trackNumVal}` : String(trackNumVal);
+        }
+
+        const badges = [];
+        if (hasContext) badges.push('<span class="px-1.5 py-0.5 rounded bg-[#14532d] text-[#4ade80] text-[10px] font-medium">解説</span>');
+        if (hasLyrics) badges.push('<span class="px-1.5 py-0.5 rounded bg-[#27272a] text-[#d4d4d8] text-[10px] font-medium">歌詞</span>');
+        if (!hasContext && track.wikiStat === 'pending') badges.push('<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-medium">取得待ち</span>');
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
+        btn.addEventListener('click', () => openTrackDetail(track.id, 'view-album'));
+        btn.innerHTML = `
+          <span class="min-w-[28px] text-center text-xs font-semibold text-[#a3a3a3] tabular-nums shrink-0">${escapeHtml(trackNumLabel)}</span>
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-semibold text-white truncate">${escapeHtml(track.title)}</div>
+            <div class="flex items-center gap-1.5 mt-1">${badges.join('')}</div>
+          </div>
+          <svg class="w-4 h-4 text-[#a3a3a3]/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        `;
+        listEl.appendChild(btn);
+      });
+
+      showView('view-album');
+    }
+
+    // ==========================================
+    // Rendering: Track Detail View (Liner Notes)
+    // ==========================================
+    function openTrackDetail(trackId, backView) {
+      const track = (appData.tracks || []).find(t => t.id === trackId);
+      if (!track) return;
+
+      currentBackView = backView || 'view-top';
+
+      document.getElementById('track-detail-art-wrap').innerHTML = createArtworkHTML(track.artworkUrl, 'w-9 h-9');
+      document.getElementById('track-detail-title').textContent = track.title;
+      document.getElementById('track-detail-artist').textContent = track.artist;
+      document.getElementById('track-detail-album').textContent = track.album;
+
+      const geniusLink = document.getElementById('track-genius-link');
+      geniusLink.href = track.geniusUrl || `https://genius.com/search?q=${encodeURIComponent(track.artist + ' ' + track.title)}`;
+
+      // Render Context Panel
+      const contextPanel = document.getElementById('panel-context');
+      contextPanel.innerHTML = '';
+
+      if (track.contexts && track.contexts.length > 0) {
+        track.contexts.forEach(ctx => {
+          const card = document.createElement('article');
+          card.className = 'p-4 rounded-xl bg-sp-surface border border-white/5';
+          card.innerHTML = `
+            <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide uppercase mb-2.5">
+              ${escapeHtml(ctx.source)}
+            </div>
+            <p class="text-sm text-white/90 leading-relaxed whitespace-pre-wrap">${escapeHtml(ctx.content)}</p>
+          `;
+          contextPanel.appendChild(card);
+        });
+      } else {
+        const msg = track.wikiStat === 'pending'
+          ? '次回のバッチまたは「最新取込」で取得されます'
+          : '解説データが見つかりませんでした';
+        contextPanel.innerHTML = `
+          <div class="p-6 rounded-xl bg-sp-surface border border-white/5 text-center">
+            <p class="text-sm text-sp-muted">${msg}</p>
+          </div>
+        `;
+      }
+
+      // Render Lyrics Panel
+      const lyricsPanel = document.getElementById('panel-lyrics');
+      if (track.lyrics) {
+        lyricsPanel.innerHTML = `
+          <div class="p-5 rounded-xl bg-sp-surface border border-white/5">
+            <p class="text-[15px] text-white/90 leading-8 whitespace-pre-wrap">${escapeHtml(track.lyrics)}</p>
+          </div>
+        `;
+      } else {
+        const msg = track.lyricsStat === 'pending'
+          ? '次回のバッチまたは「最新取込」で取得されます'
+          : '歌詞データが見つかりませんでした';
+        lyricsPanel.innerHTML = `
+          <div class="p-6 rounded-xl bg-sp-surface border border-white/5 text-center">
+            <p class="text-sm text-sp-muted">${msg}</p>
+          </div>
+        `;
+      }
+
+      // Default to Context tab
+      switchTrackTab('context');
+      showView('view-track');
+    }
+
+    function switchTrackTab(tab) {
+      currentTrackTab = tab;
+      const btnContext = document.getElementById('tab-btn-context');
+      const btnLyrics = document.getElementById('tab-btn-lyrics');
+      const panelContext = document.getElementById('panel-context');
+      const panelLyrics = document.getElementById('panel-lyrics');
+
+      if (tab === 'context') {
+        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white';
+        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white';
+        panelContext.classList.remove('hidden');
+        panelLyrics.classList.add('hidden');
+      } else {
+        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white';
+        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white';
+        panelLyrics.classList.remove('hidden');
+        panelContext.classList.add('hidden');
+      }
+    }
+
+    // ==========================================
+    // App Initialization
+    // ==========================================
+    window.addEventListener('online', () => {
+      updateOfflineUI();
+      showToast('オンラインに復帰しました', 'success');
+    });
+    window.addEventListener('offline', () => {
+      updateOfflineUI();
+      showToast('オフラインになりました', 'info');
+    });
+
+    window.onload = async () => {
+      updateOfflineUI();
+
+      // Back button listener for Track Detail View
+      document.getElementById('btn-track-back').addEventListener('click', () => showView(currentBackView));
+
+      // Search listener
+      document.getElementById('search-input').addEventListener('input', () => renderTopView());
+
+      // 1. Load cached data immediately from IndexedDB
+      try {
+        await initDB();
+        const cached = await loadPayloadFromDB();
+        if (cached && Array.isArray(cached.tracks)) {
+          appData = { updatedAt: cached.updatedAt, tracks: cached.tracks };
+          renderTopView();
+        }
+      } catch (err) {
+        console.error('IndexedDB Error:', err);
+      }
+
+      // 2. Silently refresh from GAS API in the background if online
+      if (navigator.onLine) {
+        await fetchGetPayload(true);
+      }
+    };
+  </script>
+</body>
+</html>
