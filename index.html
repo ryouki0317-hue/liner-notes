@@ -45,7 +45,7 @@
   </div>
 
   <!-- ==========================================
-       1. TOP VIEW (Header, Sync, Search, Albums)
+1. TOP VIEW (Header, Sync, Search, Albums)
   =========================================== -->
   <div id="view-top" class="max-w-2xl mx-auto">
     <!-- Sticky Header -->
@@ -146,7 +146,7 @@
   </div>
 
   <!-- ==========================================
-       2. ALBUM DETAIL VIEW
+2. ALBUM DETAIL VIEW
   =========================================== -->
   <div id="view-album" class="hidden max-w-2xl mx-auto">
     <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center">
@@ -165,11 +165,21 @@
       <p id="album-detail-meta" class="text-xs text-[#a3a3a3]/80 mt-1.5"></p>
     </div>
 
+    <!-- Album Context (Wikipedia アルバム解説) -->
+    <div id="album-detail-context" class="hidden px-4 pt-4">
+      <article class="p-4 rounded-xl bg-sp-surface border border-white/5">
+        <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide mb-2.5">
+          Wikipedia（アルバム解説）
+        </div>
+        <p id="album-detail-context-body" class="text-sm text-white/90 leading-relaxed whitespace-pre-wrap"></p>
+      </article>
+    </div>
+
     <div id="album-tracks-list" class="px-2 py-3 space-y-1"></div>
   </div>
 
   <!-- ==========================================
-       3. TRACK DETAIL VIEW (Liner Notes)
+3. TRACK DETAIL VIEW (Liner Notes)
   =========================================== -->
   <div id="view-track" class="hidden max-w-2xl mx-auto">
     <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center justify-between">
@@ -231,7 +241,7 @@
     const CACHE_KEY = 'latest';
 
     let db = null;
-    let appData = { updatedAt: null, tracks: [] };
+    let appData = { updatedAt: null, tracks: [], albumContexts: {} };
     let currentBackView = 'view-top';
     let currentTrackTab = 'context';
     let toastTimer = null;
@@ -261,7 +271,12 @@
         if (!db) return resolve();
         const tx = db.transaction([STORE_NAME], 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        store.put({ key: CACHE_KEY, updatedAt: payload.updatedAt, tracks: payload.tracks || [] });
+        store.put({
+          key: CACHE_KEY,
+          updatedAt: payload.updatedAt,
+          tracks: payload.tracks || [],
+          albumContexts: payload.albumContexts || {}
+        });
         tx.oncomplete = () => resolve();
         tx.onerror = (e) => reject(e.target.error);
       });
@@ -326,10 +341,6 @@
       return `最終同期: ${mm}/${dd} ${hh}:${mi}`;
     }
 
-    /**
-     * Generates an artwork element with an inline SVG music note fallback
-     * (No base64 or external placeholder URLs needed)
-     */
     function createArtworkHTML(url, iconSizeClass = 'w-6 h-6') {
       const fallbackSvg = `
         <div class="w-full h-full flex items-center justify-center bg-sp-elevated text-sp-muted/60">
@@ -380,7 +391,11 @@
         const data = await res.json();
 
         if (data && Array.isArray(data.tracks)) {
-          appData = { updatedAt: data.updatedAt || new Date().toISOString(), tracks: data.tracks };
+          appData = {
+            updatedAt: data.updatedAt || new Date().toISOString(),
+            tracks: data.tracks,
+            albumContexts: data.albumContexts || {}
+          };
           await savePayloadToDB(appData);
           renderTopView();
           if (!silent) showToast('最新データに更新しました', 'success');
@@ -429,7 +444,8 @@
         if (json.status === 'ok' && json.data && Array.isArray(json.data.tracks)) {
           appData = {
             updatedAt: json.data.updatedAt || new Date().toISOString(),
-            tracks: json.data.tracks
+            tracks: json.data.tracks,
+            albumContexts: json.data.albumContexts || {}
           };
           await savePayloadToDB(appData);
           renderTopView();
@@ -637,6 +653,30 @@
       document.getElementById('album-detail-artist').textContent = albumObj.artist;
       document.getElementById('album-detail-meta').textContent = `${albumObj.tracks.length}曲収録`;
 
+      // アルバム解説の表示
+      const albumCtxEl = document.getElementById('album-detail-context');
+      const albumCtxBody = document.getElementById('album-detail-context-body');
+      const albumKey = `${albumObj.artist}||${albumObj.album}`;
+      let albumCtxText = (appData.albumContexts && appData.albumContexts[albumKey]) || '';
+
+      // フォールバック：曲データ内のアルバム解説を参照
+      if (!albumCtxText) {
+        for (const t of albumObj.tracks) {
+          const found = (t.contexts || []).find(c => c.source === 'Wikipedia (アルバム解説)');
+          if (found && found.content) {
+            albumCtxText = found.content;
+            break;
+          }
+        }
+      }
+
+      if (albumCtxText) {
+        albumCtxBody.textContent = albumCtxText;
+        albumCtxEl.classList.remove('hidden');
+      } else {
+        albumCtxEl.classList.add('hidden');
+      }
+
       // Sort tracks strictly by discNumber -> trackNumber -> addedAt (ascending)
       const sortedTracks = [...albumObj.tracks].sort((a, b) => {
         const aTrackNum = Number(a.trackNumber);
@@ -736,7 +776,7 @@
           const card = document.createElement('article');
           card.className = 'p-4 rounded-xl bg-sp-surface border border-white/5';
           card.innerHTML = `
-            <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide uppercase mb-2.5">
+            <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide mb-2.5">
               ${escapeHtml(ctx.source)}
             </div>
             <p class="text-sm text-white/90 leading-relaxed whitespace-pre-wrap">${escapeHtml(ctx.content)}</p>
@@ -824,7 +864,11 @@
         await initDB();
         const cached = await loadPayloadFromDB();
         if (cached && Array.isArray(cached.tracks)) {
-          appData = { updatedAt: cached.updatedAt, tracks: cached.tracks };
+          appData = {
+            updatedAt: cached.updatedAt,
+            tracks: cached.tracks,
+            albumContexts: cached.albumContexts || {}
+          };
           renderTopView();
         }
       } catch (err) {
