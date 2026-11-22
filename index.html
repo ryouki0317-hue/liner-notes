@@ -149,7 +149,7 @@
   =========================================== -->
   <div id="view-album" class="hidden max-w-2xl mx-auto">
     <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sp-border px-2 py-2.5 flex items-center">
-      <button onclick="showView('view-top')" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+      <button onclick="goBack()" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -182,7 +182,7 @@
   =========================================== -->
   <div id="view-track" class="hidden max-w-2xl mx-auto">
     <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sp-border px-2 py-2.5 flex items-center justify-between">
-      <button id="btn-track-back" type="button" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+      <button onclick="goBack()" type="button" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -244,7 +244,7 @@
 
     let db = null;
     let appData = { updatedAt: null, tracks: [], albumContexts: {} };
-    let currentBackView = 'view-top';
+    let currentAlbumMap = new Map(); // albumKey -> albumObj
     let currentTrackTab = 'context';
     let toastTimer = null;
 
@@ -468,7 +468,7 @@
     }
 
     // ==========================================
-    // View Navigation
+    // View Navigation & Browser History Control
     // ==========================================
     function showView(viewId) {
       ['view-top', 'view-album', 'view-track'].forEach(id => {
@@ -476,6 +476,42 @@
       });
       window.scrollTo({ top: 0, behavior: 'instant' });
     }
+
+    function goBack() {
+      history.back();
+    }
+
+    function initHistoryGuard() {
+      // TOPの裏にガード用の履歴を1枚置き、その上にTOPを積む
+      history.replaceState({ view: 'view-top', guard: true }, '');
+      history.pushState({ view: 'view-top' }, '');
+    }
+
+    window.addEventListener('popstate', (e) => {
+      const state = e.state;
+
+      // TOPのガードに到達したら、再度TOPを積み直してアプリ終了を防ぐ
+      if (!state || state.guard) {
+        showView('view-top');
+        history.pushState({ view: 'view-top' }, '');
+        return;
+      }
+
+      if (state.view === 'view-album' && state.albumKey) {
+        const albumObj = currentAlbumMap.get(state.albumKey);
+        if (albumObj) {
+          openAlbumDetail(albumObj, false);
+          return;
+        }
+      }
+
+      if (state.view === 'view-track' && state.trackId) {
+        openTrackDetail(state.trackId, false);
+        return;
+      }
+
+      showView('view-top');
+    });
 
     function clearSearch() {
       const input = document.getElementById('search-input');
@@ -534,7 +570,7 @@
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
-            btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
+            btn.addEventListener('click', () => openTrackDetail(track.id, true));
             btn.innerHTML = `
               <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border">
                 ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
@@ -565,6 +601,7 @@
 
         if (!albumsMap.has(key)) {
           albumsMap.set(key, {
+            key: key,
             album: albumName,
             artistSet: new Set(),
             artworkCounts: new Map(),
@@ -579,11 +616,11 @@
         entry.tracks.push(t);
       });
 
+      currentAlbumMap = new Map();
       let albums = Array.from(albumsMap.values()).map(entry => {
         const artists = Array.from(entry.artistSet);
         const isVarious = artists.length > 1;
 
-        // アルバム内で最頻出のジャケットURLを代表画像にする
         let bestArtwork = '';
         let maxCount = 0;
         entry.artworkCounts.forEach((count, url) => {
@@ -593,7 +630,8 @@
           }
         });
 
-        return {
+        const obj = {
+          key: entry.key,
           album: entry.album,
           artist: isVarious ? 'Various Artists' : artists[0],
           artists: artists,
@@ -601,6 +639,8 @@
           artworkUrl: bestArtwork,
           tracks: entry.tracks
         };
+        currentAlbumMap.set(entry.key, obj);
+        return obj;
       });
 
       if (query) {
@@ -619,7 +659,7 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'w-full flex items-center gap-3.5 p-2 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
-          btn.addEventListener('click', () => openAlbumDetail(album));
+          btn.addEventListener('click', () => openAlbumDetail(album, true));
           btn.innerHTML = `
             <div class="w-[60px] h-[60px] rounded-md overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border shadow-sm">
               ${createArtworkHTML(album.artworkUrl, 'w-6 h-6')}
@@ -649,7 +689,7 @@
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
-          btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
+          btn.addEventListener('click', () => openTrackDetail(track.id, true));
           btn.innerHTML = `
             <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border">
               ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
@@ -679,7 +719,7 @@
     // ==========================================
     // Rendering: Album Detail View
     // ==========================================
-    function openAlbumDetail(albumObj) {
+    function openAlbumDetail(albumObj, pushHistory = true) {
       document.getElementById('album-detail-art-wrap').innerHTML = createArtworkHTML(albumObj.artworkUrl, 'w-12 h-12');
       document.getElementById('album-detail-title').textContent = albumObj.album;
       document.getElementById('album-detail-artist').textContent = albumObj.artist;
@@ -707,7 +747,6 @@
         albumCtxEl.classList.add('hidden');
       }
 
-      // Sort tracks strictly by discNumber -> trackNumber -> addedAt (ascending)
       const sortedTracks = [...albumObj.tracks].sort((a, b) => {
         const aTrackNum = Number(a.trackNumber);
         const bTrackNum = Number(b.trackNumber);
@@ -761,7 +800,7 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
-        btn.addEventListener('click', () => openTrackDetail(track.id, 'view-album'));
+        btn.addEventListener('click', () => openTrackDetail(track.id, true));
         btn.innerHTML = `
           <span class="min-w-[28px] text-center text-xs font-semibold text-sp-muted tabular-nums shrink-0">${escapeHtml(trackNumLabel)}</span>
           <div class="min-w-0 flex-1">
@@ -776,17 +815,18 @@
         listEl.appendChild(btn);
       });
 
+      if (pushHistory) {
+        history.pushState({ view: 'view-album', albumKey: albumObj.key }, '');
+      }
       showView('view-album');
     }
 
     // ==========================================
     // Rendering: Track Detail View (Liner Notes)
     // ==========================================
-    function openTrackDetail(trackId, backView) {
+    function openTrackDetail(trackId, pushHistory = true) {
       const track = (appData.tracks || []).find(t => t.id === trackId);
       if (!track) return;
-
-      currentBackView = backView || 'view-top';
 
       document.getElementById('track-detail-art-wrap').innerHTML = createArtworkHTML(track.artworkUrl, 'w-9 h-9');
       document.getElementById('track-detail-title').textContent = track.title;
@@ -843,6 +883,9 @@
       }
 
       switchTrackTab('context');
+      if (pushHistory) {
+        history.pushState({ view: 'view-track', trackId: track.id }, '');
+      }
       showView('view-track');
     }
 
@@ -880,8 +923,8 @@
 
     window.onload = async () => {
       updateOfflineUI();
+      initHistoryGuard();
 
-      document.getElementById('btn-track-back').addEventListener('click', () => showView(currentBackView));
       document.getElementById('search-input').addEventListener('input', () => renderTopView());
 
       try {
