@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" class="dark">
+<html lang="ja">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -12,7 +12,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: {
@@ -20,15 +19,15 @@
           },
           colors: {
             sp: {
-              base: '#0f0f0f',
-              surface: '#181818',
-              elevated: '#262626',
-              hover: '#333333',
-              border: '#262626',
-              accent: '#1DB954',
-              accentHover: '#1ed760',
-              text: '#ffffff',
-              muted: '#a3a3a3',
+              base: '#ffffff',
+              surface: '#f5f5f5',
+              elevated: '#ececec',
+              hover: '#e5e5e5',
+              border: '#e5e5e5',
+              accent: '#16a34a',
+              accentHover: '#15803d',
+              text: '#171717',
+              muted: '#737373',
             }
           }
         }
@@ -36,10 +35,10 @@
     }
   </script>
 </head>
-<body class="bg-sp-base text-sp-text font-sans antialiased selection:bg-sp-accent/30 selection:text-white min-h-screen pb-16 overflow-x-hidden">
+<body class="bg-sp-base text-sp-text font-sans antialiased selection:bg-sp-accent/20 selection:text-sp-text min-h-screen pb-16 overflow-x-hidden">
 
   <!-- Toast Notification -->
-  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-sp-elevated border border-white/10 shadow-xl text-sm font-medium text-white flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-4 max-w-[90vw]">
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-full bg-neutral-900 border border-neutral-800 shadow-xl text-sm font-medium text-white flex items-center gap-2 transition-all duration-300 opacity-0 pointer-events-none translate-y-4 max-w-[90vw]">
     <span id="toast-icon"></span>
     <span id="toast-message" class="truncate"></span>
   </div>
@@ -49,10 +48,10 @@
   =========================================== -->
   <div id="view-top" class="max-w-2xl mx-auto">
     <!-- Sticky Header -->
-    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-4 py-3">
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sp-border px-4 py-3">
       <div class="flex items-center justify-between gap-2">
         <div class="min-w-0">
-          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+          <h1 class="text-lg font-bold tracking-tight text-sp-text flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-sp-accent inline-block shrink-0"></span>
             Liner Notes
           </h1>
@@ -61,14 +60,14 @@
 
         <!-- Sync Action Buttons -->
         <div class="flex items-center gap-2 shrink-0">
-          <button id="btn-refresh" onclick="handleGetRefresh()" class="px-3 py-1.5 rounded-full bg-sp-elevated hover:bg-sp-hover active:scale-95 text-xs font-semibold text-white transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
+          <button id="btn-refresh" onclick="handleGetRefresh()" class="px-3 py-1.5 rounded-full bg-sp-surface hover:bg-sp-hover border border-sp-border active:scale-95 text-xs font-semibold text-sp-text transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
             <svg id="icon-refresh" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             <span>更新</span>
           </button>
 
-          <button id="btn-sync" onclick="handlePostSync()" class="px-3 py-1.5 rounded-full bg-sp-accent hover:bg-sp-accentHover active:scale-95 text-xs font-bold text-black transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
+          <button id="btn-sync" onclick="handlePostSync()" class="px-3 py-1.5 rounded-full bg-sp-accent hover:bg-sp-accentHover active:scale-95 text-xs font-bold text-white transition flex items-center gap-1.5 disabled:opacity-50 disabled:pointer-events-none">
             <svg id="icon-sync" class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
             </svg>
@@ -82,7 +81,7 @@
       </div>
 
       <!-- Offline Banner -->
-      <div id="offline-banner" class="hidden mt-2 px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+      <div id="offline-banner" class="hidden mt-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
         <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
         </svg>
@@ -99,9 +98,9 @@
           id="search-input"
           placeholder="曲名、アーティスト、アルバムで検索..."
           autocomplete="off"
-          class="w-full pl-10 pr-9 py-2.5 rounded-full bg-sp-elevated text-sm text-white placeholder-sp-muted focus:outline-none focus:ring-2 focus:ring-sp-accent/70 transition"
+          class="w-full pl-10 pr-9 py-2.5 rounded-full bg-sp-surface border border-sp-border text-sm text-sp-text placeholder-sp-muted focus:outline-none focus:bg-white focus:ring-2 focus:ring-sp-accent/40 focus:border-sp-accent transition"
         >
-        <button id="btn-clear-search" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-sp-muted hover:text-white p-1">
+        <button id="btn-clear-search" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-sp-muted hover:text-sp-text p-1">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
@@ -119,7 +118,7 @@
       <!-- Search Results: Tracks -->
       <section id="section-search-tracks" class="hidden">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">楽曲</h2>
+          <h2 class="text-xs font-bold text-sp-muted uppercase tracking-wider">楽曲</h2>
           <span id="search-tracks-count" class="text-xs text-sp-muted"></span>
         </div>
         <div id="search-tracks-list" class="space-y-1"></div>
@@ -128,16 +127,16 @@
       <!-- Albums List -->
       <section id="section-albums">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">アルバム</h2>
+          <h2 class="text-xs font-bold text-sp-muted uppercase tracking-wider">アルバム</h2>
           <span id="albums-count" class="text-xs text-sp-muted"></span>
         </div>
-        <div id="albums-list" class="space-y-1.5"></div>
+        <div id="albums-list" class="space-y-1"></div>
       </section>
 
-      <!-- Recently Added Tracks (Default Home View) -->
+      <!-- Recently Played Tracks (Default Home View) -->
       <section id="section-recent-tracks" class="hidden">
         <div class="flex items-center justify-between mb-2">
-          <h2 class="text-sm font-bold text-sp-muted uppercase tracking-wider">最近追加した曲</h2>
+          <h2 class="text-xs font-bold text-sp-muted uppercase tracking-wider">最近聴いた曲</h2>
           <span id="recent-tracks-count" class="text-xs text-sp-muted"></span>
         </div>
         <div id="recent-tracks-list" class="space-y-1"></div>
@@ -149,8 +148,8 @@
 2. ALBUM DETAIL VIEW
   =========================================== -->
   <div id="view-album" class="hidden max-w-2xl mx-auto">
-    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center">
-      <button onclick="showView('view-top')" class="p-2 rounded-full text-sp-muted hover:text-white hover:bg-sp-elevated active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sp-border px-2 py-2.5 flex items-center">
+      <button onclick="showView('view-top')" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -158,20 +157,20 @@
       </button>
     </header>
 
-    <div class="px-4 pt-6 pb-6 border-b border-[#262626] text-center">
-      <div id="album-detail-art-wrap" class="w-[140px] h-[140px] mx-auto rounded-lg overflow-hidden shadow-2xl bg-sp-elevated mb-4 relative"></div>
-      <h2 id="album-detail-title" class="text-xl font-bold text-[#f5f5f5] leading-snug"></h2>
-      <p id="album-detail-artist" class="text-sm text-[#a3a3a3] mt-1"></p>
-      <p id="album-detail-meta" class="text-xs text-[#a3a3a3]/80 mt-1.5"></p>
+    <div class="px-4 pt-6 pb-6 border-b border-sp-border text-center">
+      <div id="album-detail-art-wrap" class="w-[140px] h-[140px] mx-auto rounded-lg overflow-hidden shadow-md border border-sp-border bg-sp-surface mb-4 relative"></div>
+      <h2 id="album-detail-title" class="text-xl font-bold text-sp-text leading-snug"></h2>
+      <p id="album-detail-artist" class="text-sm text-sp-muted mt-1"></p>
+      <p id="album-detail-meta" class="text-xs text-sp-muted/80 mt-1.5"></p>
     </div>
 
     <!-- Album Context (Wikipedia アルバム解説) -->
     <div id="album-detail-context" class="hidden px-4 pt-4">
-      <article class="p-4 rounded-xl bg-sp-surface border border-white/5">
-        <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide mb-2.5">
+      <article class="p-4 rounded-xl bg-sp-surface border border-sp-border">
+        <div class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-green-100 text-green-800 text-[11px] font-bold tracking-wide mb-2.5">
           Wikipedia（アルバム解説）
         </div>
-        <p id="album-detail-context-body" class="text-sm text-white/90 leading-relaxed whitespace-pre-wrap"></p>
+        <p id="album-detail-context-body" class="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap"></p>
       </article>
     </div>
 
@@ -182,8 +181,8 @@
 3. TRACK DETAIL VIEW (Liner Notes)
   =========================================== -->
   <div id="view-track" class="hidden max-w-2xl mx-auto">
-    <header class="sticky top-0 z-30 bg-sp-base/95 backdrop-blur-md border-b border-[#262626] px-2 py-2.5 flex items-center justify-between">
-      <button id="btn-track-back" type="button" class="p-2 rounded-full text-sp-muted hover:text-white hover:bg-sp-elevated active:scale-95 transition flex items-center gap-1 text-sm font-medium">
+    <header class="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-sp-border px-2 py-2.5 flex items-center justify-between">
+      <button id="btn-track-back" type="button" class="p-2 rounded-full text-sp-muted hover:text-sp-text hover:bg-sp-surface active:scale-95 transition flex items-center gap-1 text-sm font-medium">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
         </svg>
@@ -191,15 +190,15 @@
       </button>
     </header>
 
-    <div class="px-4 pt-6 pb-5 text-center border-b border-[#262626]">
-      <div id="track-detail-art-wrap" class="w-[100px] h-[100px] mx-auto rounded-lg overflow-hidden shadow-xl bg-sp-elevated mb-4 relative"></div>
-      <h2 id="track-detail-title" class="text-xl font-bold text-white leading-snug"></h2>
+    <div class="px-4 pt-6 pb-5 text-center border-b border-sp-border">
+      <div id="track-detail-art-wrap" class="w-[100px] h-[100px] mx-auto rounded-lg overflow-hidden shadow-sm border border-sp-border bg-sp-surface mb-4 relative"></div>
+      <h2 id="track-detail-title" class="text-xl font-bold text-sp-text leading-snug"></h2>
       <p id="track-detail-artist" class="text-sm text-sp-muted mt-1"></p>
       <p id="track-detail-album" class="text-xs text-sp-muted/80 mt-0.5"></p>
 
       <!-- External Genius Link Button -->
       <div class="mt-4">
-        <a id="track-genius-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 hover:bg-yellow-400/25 border border-yellow-400/40 text-yellow-300 text-xs font-semibold transition active:scale-95">
+        <a id="track-genius-link" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-semibold transition active:scale-95">
           <span>Geniusで解説を見る</span>
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -210,11 +209,11 @@
 
     <!-- Tab Switcher -->
     <div class="px-4 pt-4">
-      <div class="grid grid-cols-2 p-1 rounded-xl bg-sp-surface border border-white/5">
-        <button id="tab-btn-context" onclick="switchTrackTab('context')" class="py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white">
+      <div class="grid grid-cols-2 p-1 rounded-xl bg-sp-surface border border-sp-border">
+        <button id="tab-btn-context" onclick="switchTrackTab('context')" class="py-2 rounded-lg text-sm font-semibold transition bg-white text-sp-text shadow-sm">
           解説
         </button>
-        <button id="tab-btn-lyrics" onclick="switchTrackTab('lyrics')" class="py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white">
+        <button id="tab-btn-lyrics" onclick="switchTrackTab('lyrics')" class="py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-sp-text">
           歌詞
         </button>
       </div>
@@ -302,11 +301,11 @@
       const msgEl = document.getElementById('toast-message');
 
       if (type === 'success') {
-        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-sp-accent inline-block"></span>';
+        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>';
       } else if (type === 'error') {
         iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-red-400 inline-block"></span>';
       } else {
-        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-sp-muted inline-block"></span>';
+        iconEl.innerHTML = '<span class="w-2 h-2 rounded-full bg-neutral-400 inline-block"></span>';
       }
 
       msgEl.textContent = message;
@@ -343,7 +342,7 @@
 
     function createArtworkHTML(url, iconSizeClass = 'w-6 h-6') {
       const fallbackSvg = `
-        <div class="w-full h-full flex items-center justify-center bg-sp-elevated text-sp-muted/60">
+        <div class="w-full h-full flex items-center justify-center bg-sp-surface text-sp-muted/60">
           <svg class="${iconSizeClass}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
           </svg>
@@ -515,7 +514,7 @@
         return;
       }
 
-      // 1. Track Search Results (only when query is non-empty)
+      // 1. Track Search Results
       let matchedTracks = [];
       if (query) {
         matchedTracks = tracks.filter(t =>
@@ -534,11 +533,11 @@
             btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
             btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
             btn.innerHTML = `
-              <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-elevated">
+              <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border">
                 ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
               </div>
               <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium text-white truncate">${escapeHtml(track.title)}</div>
+                <div class="text-sm font-medium text-sp-text truncate">${escapeHtml(track.title)}</div>
                 <div class="text-xs text-sp-muted truncate">${escapeHtml(track.artist)} • ${escapeHtml(track.album)}</div>
               </div>
             `;
@@ -551,7 +550,7 @@
         searchSection.classList.add('hidden');
       }
 
-      // 2. Group Albums by album + artist
+      // 2. Group Albums (tracksは最終再生日時降順なので、最初に登場したアルバムほど最近聴いたもの)
       const albumsMap = new Map();
       tracks.forEach(t => {
         const albumName = t.album || 'Single / Unknown Album';
@@ -588,15 +587,15 @@
           btn.className = 'w-full flex items-center gap-3.5 p-2 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
           btn.addEventListener('click', () => openAlbumDetail(album));
           btn.innerHTML = `
-            <div class="w-[60px] h-[60px] rounded-md overflow-hidden shrink-0 relative bg-sp-elevated shadow">
+            <div class="w-[60px] h-[60px] rounded-md overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border shadow-sm">
               ${createArtworkHTML(album.artworkUrl, 'w-6 h-6')}
             </div>
             <div class="min-w-0 flex-1">
-              <div class="text-base font-semibold text-white truncate">${escapeHtml(album.album)}</div>
+              <div class="text-base font-semibold text-sp-text truncate">${escapeHtml(album.album)}</div>
               <div class="text-xs text-sp-muted truncate mt-0.5">${escapeHtml(album.artist)}</div>
-              <div class="text-[11px] text-sp-muted/70 mt-0.5">${album.tracks.length}曲</div>
+              <div class="text-[11px] text-sp-muted/80 mt-0.5">${album.tracks.length}曲</div>
             </div>
-            <svg class="w-4 h-4 text-sp-muted/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-sp-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           `;
@@ -606,7 +605,7 @@
         albumsSection.classList.add('hidden');
       }
 
-      // 3. Recently Added Tracks (shown on default Home View when not searching)
+      // 3. Recently Played Tracks
       if (!query && tracks.length > 0) {
         const recentTracks = tracks.slice(0, 15);
         recentSection.classList.remove('hidden');
@@ -618,14 +617,14 @@
           btn.className = 'w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sp-surface active:bg-sp-elevated transition text-left';
           btn.addEventListener('click', () => openTrackDetail(track.id, 'view-top'));
           btn.innerHTML = `
-            <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-elevated">
+            <div class="w-[40px] h-[40px] rounded overflow-hidden shrink-0 relative bg-sp-surface border border-sp-border">
               ${createArtworkHTML(track.artworkUrl, 'w-4 h-4')}
             </div>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium text-white truncate">${escapeHtml(track.title)}</div>
-              <div class="text-xs text-[#a3a3a3] truncate">${escapeHtml(track.artist)} • ${escapeHtml(track.album)}</div>
+              <div class="text-sm font-medium text-sp-text truncate">${escapeHtml(track.title)}</div>
+              <div class="text-xs text-sp-muted truncate">${escapeHtml(track.artist)} • ${escapeHtml(track.album)}</div>
             </div>
-            <svg class="w-4 h-4 text-[#a3a3a3]/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <svg class="w-4 h-4 text-sp-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           `;
@@ -635,7 +634,6 @@
         recentSection.classList.add('hidden');
       }
 
-      // Empty search result message
       if (query && matchedTracks.length === 0 && albums.length === 0) {
         emptyState.classList.remove('hidden');
         emptyText.textContent = `「${query}」に一致する曲やアルバムが見つかりませんでした`;
@@ -657,18 +655,7 @@
       const albumCtxEl = document.getElementById('album-detail-context');
       const albumCtxBody = document.getElementById('album-detail-context-body');
       const albumKey = `${albumObj.artist}||${albumObj.album}`;
-      let albumCtxText = (appData.albumContexts && appData.albumContexts[albumKey]) || '';
-
-      // フォールバック：曲データ内のアルバム解説を参照
-      if (!albumCtxText) {
-        for (const t of albumObj.tracks) {
-          const found = (t.contexts || []).find(c => c.source === 'Wikipedia (アルバム解説)');
-          if (found && found.content) {
-            albumCtxText = found.content;
-            break;
-          }
-        }
-      }
+      const albumCtxText = (appData.albumContexts && appData.albumContexts[albumKey]) || '';
 
       if (albumCtxText) {
         albumCtxBody.textContent = albumCtxText;
@@ -694,13 +681,11 @@
         const bTrack = bHasTrack ? bTrackNum : 9999;
         if (aTrack !== bTrack) return aTrack - bTrack;
 
-        // Tie-breaker: chronological listening order (addedAt ascending)
         const aTime = a.addedAt ? new Date(a.addedAt).getTime() : 0;
         const bTime = b.addedAt ? new Date(b.addedAt).getTime() : 0;
         return (isNaN(aTime) ? 0 : aTime) - (isNaN(bTime) ? 0 : bTime);
       });
 
-      // Check if album contains multiple discs (or discNumber > 1)
       const validDiscs = new Set(
         sortedTracks
           .map(t => Number(t.discNumber))
@@ -726,21 +711,21 @@
         }
 
         const badges = [];
-        if (hasContext) badges.push('<span class="px-1.5 py-0.5 rounded bg-[#14532d] text-[#4ade80] text-[10px] font-medium">解説</span>');
-        if (hasLyrics) badges.push('<span class="px-1.5 py-0.5 rounded bg-[#27272a] text-[#d4d4d8] text-[10px] font-medium">歌詞</span>');
-        if (!hasContext && track.wikiStat === 'pending') badges.push('<span class="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 text-[10px] font-medium">取得待ち</span>');
+        if (hasContext) badges.push('<span class="px-1.5 py-0.5 rounded bg-green-100 text-green-800 text-[10px] font-semibold">解説</span>');
+        if (hasLyrics) badges.push('<span class="px-1.5 py-0.5 rounded bg-neutral-200 text-neutral-700 text-[10px] font-semibold">歌詞</span>');
+        if (!hasContext && track.wikiStat === 'pending') badges.push('<span class="px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-semibold">取得待ち</span>');
 
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-sp-surface active:bg-sp-elevated transition text-left';
         btn.addEventListener('click', () => openTrackDetail(track.id, 'view-album'));
         btn.innerHTML = `
-          <span class="min-w-[28px] text-center text-xs font-semibold text-[#a3a3a3] tabular-nums shrink-0">${escapeHtml(trackNumLabel)}</span>
+          <span class="min-w-[28px] text-center text-xs font-semibold text-sp-muted tabular-nums shrink-0">${escapeHtml(trackNumLabel)}</span>
           <div class="min-w-0 flex-1">
-            <div class="text-sm font-semibold text-white truncate">${escapeHtml(track.title)}</div>
+            <div class="text-sm font-semibold text-sp-text truncate">${escapeHtml(track.title)}</div>
             <div class="flex items-center gap-1.5 mt-1">${badges.join('')}</div>
           </div>
-          <svg class="w-4 h-4 text-[#a3a3a3]/50 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-sp-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
           </svg>
         `;
@@ -774,12 +759,12 @@
       if (track.contexts && track.contexts.length > 0) {
         track.contexts.forEach(ctx => {
           const card = document.createElement('article');
-          card.className = 'p-4 rounded-xl bg-sp-surface border border-white/5';
+          card.className = 'p-4 rounded-xl bg-sp-surface border border-sp-border';
           card.innerHTML = `
-            <div class="inline-flex items-center px-2 py-0.5 rounded-full bg-sp-accent/15 text-sp-accent text-[11px] font-bold tracking-wide mb-2.5">
+            <div class="inline-flex items-center px-2.5 py-0.5 rounded-full bg-green-100 text-green-800 text-[11px] font-bold tracking-wide mb-2.5">
               ${escapeHtml(ctx.source)}
             </div>
-            <p class="text-sm text-white/90 leading-relaxed whitespace-pre-wrap">${escapeHtml(ctx.content)}</p>
+            <p class="text-sm text-neutral-800 leading-relaxed whitespace-pre-wrap">${escapeHtml(ctx.content)}</p>
           `;
           contextPanel.appendChild(card);
         });
@@ -788,7 +773,7 @@
           ? '次回のバッチまたは「最新取込」で取得されます'
           : '解説データが見つかりませんでした';
         contextPanel.innerHTML = `
-          <div class="p-6 rounded-xl bg-sp-surface border border-white/5 text-center">
+          <div class="p-6 rounded-xl bg-sp-surface border border-sp-border text-center">
             <p class="text-sm text-sp-muted">${msg}</p>
           </div>
         `;
@@ -798,8 +783,8 @@
       const lyricsPanel = document.getElementById('panel-lyrics');
       if (track.lyrics) {
         lyricsPanel.innerHTML = `
-          <div class="p-5 rounded-xl bg-sp-surface border border-white/5">
-            <p class="text-[15px] text-white/90 leading-8 whitespace-pre-wrap">${escapeHtml(track.lyrics)}</p>
+          <div class="p-5 rounded-xl bg-sp-surface border border-sp-border">
+            <p class="text-[15px] text-neutral-800 leading-8 whitespace-pre-wrap">${escapeHtml(track.lyrics)}</p>
           </div>
         `;
       } else {
@@ -807,13 +792,12 @@
           ? '次回のバッチまたは「最新取込」で取得されます'
           : '歌詞データが見つかりませんでした';
         lyricsPanel.innerHTML = `
-          <div class="p-6 rounded-xl bg-sp-surface border border-white/5 text-center">
+          <div class="p-6 rounded-xl bg-sp-surface border border-sp-border text-center">
             <p class="text-sm text-sp-muted">${msg}</p>
           </div>
         `;
       }
 
-      // Default to Context tab
       switchTrackTab('context');
       showView('view-track');
     }
@@ -826,13 +810,13 @@
       const panelLyrics = document.getElementById('panel-lyrics');
 
       if (tab === 'context') {
-        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white';
-        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white';
+        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition bg-white text-sp-text shadow-sm';
+        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-sp-text';
         panelContext.classList.remove('hidden');
         panelLyrics.classList.add('hidden');
       } else {
-        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition bg-sp-elevated text-white';
-        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-white';
+        btnLyrics.className = 'py-2 rounded-lg text-sm font-semibold transition bg-white text-sp-text shadow-sm';
+        btnContext.className = 'py-2 rounded-lg text-sm font-semibold transition text-sp-muted hover:text-sp-text';
         panelLyrics.classList.remove('hidden');
         panelContext.classList.add('hidden');
       }
@@ -853,13 +837,9 @@
     window.onload = async () => {
       updateOfflineUI();
 
-      // Back button listener for Track Detail View
       document.getElementById('btn-track-back').addEventListener('click', () => showView(currentBackView));
-
-      // Search listener
       document.getElementById('search-input').addEventListener('input', () => renderTopView());
 
-      // 1. Load cached data immediately from IndexedDB
       try {
         await initDB();
         const cached = await loadPayloadFromDB();
@@ -875,7 +855,6 @@
         console.error('IndexedDB Error:', err);
       }
 
-      // 2. Silently refresh from GAS API in the background if online
       if (navigator.onLine) {
         await fetchGetPayload(true);
       }
