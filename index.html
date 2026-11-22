@@ -239,6 +239,9 @@
     const STORE_NAME = 'appState';
     const CACHE_KEY = 'latest';
 
+    // 同名でもアーティストごとに分けて保持する汎用アルバム名
+    const GENERIC_ALBUM_REGEX = /^(greatest hits|the best of|best of|best|premium best|all time best|golden best|complete best|the very best of|very best of|essential|the essential|singles|the singles|single \/ unknown album|unknown album|untitled|live|unplugged)$/i;
+
     let db = null;
     let appData = { updatedAt: null, tracks: [], albumContexts: {} };
     let currentBackView = 'view-top';
@@ -550,30 +553,61 @@
         searchSection.classList.add('hidden');
       }
 
-      // 2. Group Albums (tracksは最終再生日時降順なので、最初に登場したアルバムほど最近聴いたもの)
+      // 2. Group Albums (Various Artists対応：汎用タイトル以外はアルバム名で集約)
       const albumsMap = new Map();
       tracks.forEach(t => {
-        const albumName = t.album || 'Single / Unknown Album';
-        const artistName = t.artist || 'Unknown Artist';
-        const key = `${albumName}:::${artistName}`;
+        const albumName = (t.album || 'Single / Unknown Album').trim();
+        const artistName = (t.artist || 'Unknown Artist').trim();
+        const isGeneric = GENERIC_ALBUM_REGEX.test(albumName);
+        const key = isGeneric
+          ? `${albumName.toLowerCase()}:::${artistName.toLowerCase()}`
+          : albumName.toLowerCase();
+
         if (!albumsMap.has(key)) {
           albumsMap.set(key, {
             album: albumName,
-            artist: artistName,
-            artworkUrl: t.artworkUrl || '',
+            artistSet: new Set(),
+            artworkCounts: new Map(),
             tracks: []
           });
         }
         const entry = albumsMap.get(key);
-        if (!entry.artworkUrl && t.artworkUrl) entry.artworkUrl = t.artworkUrl;
+        entry.artistSet.add(artistName);
+        if (t.artworkUrl) {
+          entry.artworkCounts.set(t.artworkUrl, (entry.artworkCounts.get(t.artworkUrl) || 0) + 1);
+        }
         entry.tracks.push(t);
       });
 
-      let albums = Array.from(albumsMap.values());
+      let albums = Array.from(albumsMap.values()).map(entry => {
+        const artists = Array.from(entry.artistSet);
+        const isVarious = artists.length > 1;
+
+        // アルバム内で最頻出のジャケットURLを代表画像にする
+        let bestArtwork = '';
+        let maxCount = 0;
+        entry.artworkCounts.forEach((count, url) => {
+          if (count > maxCount) {
+            maxCount = count;
+            bestArtwork = url;
+          }
+        });
+
+        return {
+          album: entry.album,
+          artist: isVarious ? 'Various Artists' : artists[0],
+          artists: artists,
+          isVarious: isVarious,
+          artworkUrl: bestArtwork,
+          tracks: entry.tracks
+        };
+      });
+
       if (query) {
         albums = albums.filter(a =>
           a.album.toLowerCase().includes(query) ||
-          a.artist.toLowerCase().includes(query)
+          a.artist.toLowerCase().includes(query) ||
+          a.artists.some(name => name.toLowerCase().includes(query))
         );
       }
 
@@ -651,11 +685,20 @@
       document.getElementById('album-detail-artist').textContent = albumObj.artist;
       document.getElementById('album-detail-meta').textContent = `${albumObj.tracks.length}曲収録`;
 
-      // アルバム解説の表示
+      // アルバム解説の表示（Various Artistsの場合は収録曲のいずれかのキーから探索）
       const albumCtxEl = document.getElementById('album-detail-context');
       const albumCtxBody = document.getElementById('album-detail-context-body');
-      const albumKey = `${albumObj.artist}||${albumObj.album}`;
-      const albumCtxText = (appData.albumContexts && appData.albumContexts[albumKey]) || '';
+      const contextsMap = appData.albumContexts || {};
+      let albumCtxText = contextsMap[`${albumObj.artist}||${albumObj.album}`] || '';
+      if (!albumCtxText) {
+        for (const t of albumObj.tracks) {
+          const k = `${t.artist}||${albumObj.album}`;
+          if (contextsMap[k]) {
+            albumCtxText = contextsMap[k];
+            break;
+          }
+        }
+      }
 
       if (albumCtxText) {
         albumCtxBody.textContent = albumCtxText;
@@ -723,6 +766,7 @@
           <span class="min-w-[28px] text-center text-xs font-semibold text-sp-muted tabular-nums shrink-0">${escapeHtml(trackNumLabel)}</span>
           <div class="min-w-0 flex-1">
             <div class="text-sm font-semibold text-sp-text truncate">${escapeHtml(track.title)}</div>
+            ${albumObj.isVarious ? `<div class="text-xs text-sp-muted truncate mt-0.5">${escapeHtml(track.artist)}</div>` : ''}
             <div class="flex items-center gap-1.5 mt-1">${badges.join('')}</div>
           </div>
           <svg class="w-4 h-4 text-sp-muted/60 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
